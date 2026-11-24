@@ -212,7 +212,7 @@ class MainService:
 	@railway
 	def _svg_to_png(self, context: RailsContext, svg_code: str, png_path: str, width: int):
 		svg_file = self.mermaid_dir / f"_tmp_.svg"
-		with open(svg_file, 'w') as f:
+		with open(svg_file, "w", encoding="utf-8") as f:
 			f.write(svg_code)
 
 		cairosvg.svg2png(url=str(svg_file), write_to=str(png_path), output_width=width)
