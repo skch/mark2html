@@ -41,8 +41,9 @@ class MainService:
 		self.output_file = settings.output_file
 		self.input_files = self._verify_input_files(context, settings)
 		self.title = self._get_title(context, settings)
-		self.mermaid_dir = mermaid_dir = self.output_path / "mermaid"
-		self.images_dir = mermaid_dir = self.output_path / "images"
+		self.section_title = True
+		self.mermaid_dir = self.output_path / "mermaid"
+		self.images_dir = self.output_path / "images"
 
 	#----------------------------------------------
 	@railway
@@ -206,7 +207,7 @@ class MainService:
 	def _mermaid_block(self, context: RailsContext, mermaid_source: str, index: int, img_name: str):
 		safe_source = html.escape(mermaid_source)
 		if not img_name: return self._mermaid_html(safe_source)
-		return self._png_html(f"mermaid/{img_name}", f"Mermaid diagram {index}", safe_source)
+		return self._diagram_html(f"mermaid/{img_name}", f"Mermaid diagram {index}", safe_source)
 
 	#----------------------------------------------
 	@railway
@@ -223,6 +224,10 @@ class MainService:
 		svg_path = self.mermaid_dir / svg_filename
 		png_path = self.mermaid_dir / png_filename
 
+		# drawing = svg2rlg(svg_file)
+		# if not drawing: return context.setError(False, "Cannot load SVG file")
+		# renderPM.drawToFile(drawing, png_path, fmt="PNG", dpi=custom_dpi)
+
 		cairosvg.svg2png(url=str(svg_path), write_to=str(png_path), dpi=custom_dpi)
 		svg_path.unlink(missing_ok=True)
 		return True
@@ -236,10 +241,10 @@ class MainService:
 		)
 
 	#----------------------------------------------
-	def _png_html(self, src: str, alt: str, mcode: str):
+	def _diagram_html(self, src: str, alt: str, mcode: str):
 		return (
-			f'<div class="md2html-mermaid">'
-			f'<img src="{src}" alt="{alt}">'
+			f'<div class="diagram">'
+			f'<img style="width:100%" src="{src}" alt="{alt}">'
 			f'<pre class="mermaid" style="display:none">{mcode}</pre>'
 			f'</div>'
 		)
@@ -262,11 +267,11 @@ class MainService:
 
 		for i, (section_title, section_html) in enumerate(self.sections):
 			safe_id = re.sub(r"[^a-zA-Z0-9]+", "-", section_title).lower().strip("-")
-			if i > 0:
-				htext.append('<hr class="file-separator">')
-			htext.append(
-				f'<div id="section-{safe_id}">{section_html}</div>'
-			)
+			if i > 0:	htext.append('<hr class="file-separator">')
+			if self.section_title:
+				htext.append(f'<div id="section-{safe_id}"><h1>{section_title}</h1>{section_html}</div>')
+			else:
+				htext.append(f'<div id="section-{safe_id}">{section_html}</div>')
 
 		htext.append("</body>")
 		htext.append("</html>")
@@ -330,5 +335,6 @@ class MainService:
 		return True
 
 	#endregion
+
 
 	EOF = True
