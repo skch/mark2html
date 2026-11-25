@@ -4,7 +4,7 @@ from common.rails_context import RailsContext
 from domain.config_reader import ConfigReader
 from domain.main_service import MainService
 
-VERSION = '1.0.25'
+VERSION = '1.0.26'
 
 def main():
 	print(f'Markdown to HTML. Version {VERSION}')

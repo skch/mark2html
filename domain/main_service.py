@@ -2,8 +2,11 @@ import re
 import shutil
 from pathlib import Path
 import html
-import mermaidx
+
+
 import cairosvg
+import mermaidx
+
 
 import markdown
 from common.rails_context import RailsContext, railway
@@ -83,11 +86,11 @@ class MainService:
 		self.all_image_mapping.update(image_mapping)
 
 		mermaid_replacements: dict[int, str] = {}
-		if not no_mermaid_png and mermaid_blocks:
+		if mermaid_blocks:
 			self.mermaid_dir.mkdir(parents=True, exist_ok=True)
 			for mermaid_idx, block_source in enumerate(mermaid_blocks):
 				block_num = idx * 1000 + mermaid_idx
-				img_name = self._render_mermaid(context, block_source, block_num)
+				img_name = self._render_mermaid(context, block_source, block_num, no_mermaid_png)
 				replacement = self._mermaid_block(context, block_source, block_num, img_name)
 				mermaid_replacements[block_num] = replacement
 
@@ -188,35 +191,41 @@ class MainService:
 	#region Diagrams
 	#----------------------------------------------
 	@railway
-	def _render_mermaid(self, context: RailsContext, mermaid_source: str, index: int) -> str:
+	def _render_mermaid(self, context: RailsContext, mermaid_source: str, index: int, no_png: bool) -> str:
+
+		svg_filename = f"mermaid_{index}.svg"
+		self._mermaid_to_svg(context, mermaid_source, svg_filename)
+		if no_png: return svg_filename
+
 		png_filename = f"mermaid_{index}.png"
-		png_path = self.mermaid_dir / png_filename
-		svg_string = self._mermaid_to_svg(context, mermaid_source)
-		self._svg_to_png(context, svg_string, png_path, 1280)
+		self._svg_to_png(context, svg_filename, png_filename, 1280)
 		return png_filename
 
 	#----------------------------------------------
 	@railway
-	def _mermaid_block(self, context: RailsContext, mermaid_source: str, index: int, png_name: str):
+	def _mermaid_block(self, context: RailsContext, mermaid_source: str, index: int, img_name: str):
 		safe_source = html.escape(mermaid_source)
-		if not png_name: return self._mermaid_html(safe_source)
-		return self._png_html(f"mermaid/{png_name}", f"Mermaid diagram {index}", safe_source)
+		if not img_name: return self._mermaid_html(safe_source)
+		return self._png_html(f"mermaid/{img_name}", f"Mermaid diagram {index}", safe_source)
 
 	#----------------------------------------------
 	@railway
-	def _mermaid_to_svg(self, context: RailsContext, mermaid: str):
+	def _mermaid_to_svg(self, context: RailsContext, mermaid: str, filename: str):
 		diagram = mermaidx.render(mermaid)
-		return diagram.svg()
+		svg_code = diagram.svg()
+		svg_file = self.mermaid_dir / filename
+		with open(svg_file, 'w') as f: f.write(svg_code)
+		return True
 
 	#----------------------------------------------
 	@railway
-	def _svg_to_png(self, context: RailsContext, svg_code: str, png_path: str, width: int):
-		svg_file = self.mermaid_dir / f"_tmp_.svg"
-		with open(svg_file, "w", encoding="utf-8") as f:
-			f.write(svg_code)
+	def _svg_to_png(self, context: RailsContext, svg_filename: str, png_filename: str, custom_dpi: int):
+		svg_path = self.mermaid_dir / svg_filename
+		png_path = self.mermaid_dir / png_filename
 
-		cairosvg.svg2png(url=str(svg_file), write_to=str(png_path), output_width=width)
-		svg_file.unlink(missing_ok=True)
+		cairosvg.svg2png(url=str(svg_path), write_to=str(png_path), dpi=custom_dpi)
+		svg_path.unlink(missing_ok=True)
+		return True
 
 	#----------------------------------------------
 	def _mermaid_html(self, mcode: str):
