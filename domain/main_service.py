@@ -214,7 +214,7 @@ class MainService:
 		diagram = mermaidx.render(mermaid)
 		svg_code = diagram.svg()
 		svg_file = self.mermaid_dir / filename
-		with open(svg_file, 'w') as f: f.write(svg_code)
+		with open(svg_file, "w", encoding="utf-8") as f: f.write(svg_code)
 		return True
 
 	#----------------------------------------------
